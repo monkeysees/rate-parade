@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1 — 2026-09-26
+
+- Finish amount editing with Done instead of moving to another currency, hide the cursor after editing, and move the currency list closer to the title.
+
 ## 0.1 — 2026-09-26
 
 - License the project under MIT.
