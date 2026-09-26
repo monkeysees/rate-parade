@@ -5,7 +5,7 @@ Rate Parade is a native Android currency converter for comparing several currenc
 ## Features
 
 - Add currencies from a searchable list, then drag to reorder them or use the accessible move controls.
-- Edit any currency amount to make it the source for the other conversions; press Done to finish editing.
+- Tap any currency amount to select the whole value for replacement; editing it makes that currency the source for other conversions. Press Done to finish editing.
 - Keep your currency list, last entered amount, and downloaded rates on your device for offline use.
 - Refresh reference rates manually or let Android update them in the background. The app shows rate dates and warns when saved rates are stale or a refresh fails.
 - Follow the device's light or dark theme. No account is required.

@@ -312,6 +312,8 @@ class MainActivity : Activity() {
             setRawInputType(InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL or InputType.TYPE_NUMBER_FLAG_SIGNED)
             filters = arrayOf(InputFilter.LengthFilter(ConversionState.MAX_INPUT))
             setSingleLine(true)
+            setSelectAllOnFocus(true)
+            setOnClickListener { post { selectAll() } }
             imeOptions = EditorInfo.IME_ACTION_DONE
             setOnEditorActionListener { _, actionId, event ->
                 val done = actionId == EditorInfo.IME_ACTION_DONE ||
