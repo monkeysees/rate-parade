@@ -1,6 +1,6 @@
 # CurEx
 
-A compact, native Android currency converter. Edit any row to convert locally, search currencies by code or name, and reorder with a long press on the row’s action button or its accessible **Move up / Move down** menu. The system light/dark theme is respected. Android 8.0 (API 26) or newer is required.
+A compact, native Android currency converter. Edit any row to convert locally, search currencies by code or name, and drag a row’s handle to place it above or below another currency. The row’s **Move up / Move down** menu remains available for accessibility. The system light/dark theme is respected. Android 8.0 (API 26) or newer is required.
 
 Rates come from the European Central Bank through Frankfurter. Currency names are discovered from the API; the picker offers the currencies present in the full ECB snapshot. This deliberately uses one attributable reference-rate provider rather than Frankfurter’s wider blended feed. The full supported snapshot is requested regardless of your selected currencies. Existing selections remain visible if a currency disappears from a later snapshot, with an unavailable-rate indication.
 

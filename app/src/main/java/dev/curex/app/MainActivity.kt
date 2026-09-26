@@ -16,8 +16,10 @@ import android.text.TextWatcher
 import android.view.DragEvent
 import android.view.Gravity
 import android.view.View
+import android.view.ViewConfiguration
 import android.view.ViewGroup
 import android.view.WindowInsets
+import android.view.MotionEvent
 import android.widget.*
 import java.text.DateFormat
 import java.text.DecimalFormatSymbols
@@ -31,6 +33,7 @@ class MainActivity : Activity() {
     private var refreshing = false
     private var changingText = false
     private lateinit var rows: LinearLayout
+    private lateinit var rowScroll: ScrollView
     private lateinit var status: TextView
     private lateinit var empty: TextView
     private lateinit var refresh: Button
@@ -125,7 +128,8 @@ class MainActivity : Activity() {
         rows = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         empty = label(getString(R.string.empty), 18f).apply { setPadding(dp(8), dp(24), dp(8), dp(24)) }
         val scrollContent = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; addView(empty); addView(rows) }
-        root.addView(ScrollView(this).apply { addView(scrollContent) }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+        rowScroll = ScrollView(this).apply { addView(scrollContent) }
+        root.addView(rowScroll, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
         status = label(getString(R.string.loading), 12f).apply { setPadding(0, dp(8), 0, dp(4)) }
         scrollContent.addView(status)
         scrollContent.addView(label(getString(R.string.attribution), 12f))
@@ -194,7 +198,47 @@ class MainActivity : Activity() {
 
     private fun createRow(code: String): CurrencyRow {
         val container = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(0, dp(8), 0, dp(8)) }
+        val topMarker = dropMarker()
+        val bottomMarker = dropMarker()
+        container.addView(topMarker)
         val heading = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
+        val handle = label("≡", 28f).apply {
+            gravity = Gravity.CENTER
+            contentDescription = getString(R.string.drag_currency, code)
+            setOnClickListener { showActions(this, code) }
+            var downX = 0f
+            var downY = 0f
+            var dragging = false
+            val slop = ViewConfiguration.get(context).scaledTouchSlop
+            setOnTouchListener { _, event ->
+                when (event.actionMasked) {
+                    MotionEvent.ACTION_DOWN -> {
+                        downX = event.x
+                        downY = event.y
+                        dragging = false
+                        parent.requestDisallowInterceptTouchEvent(true)
+                        true
+                    }
+                    MotionEvent.ACTION_MOVE -> {
+                        if (!dragging && (kotlin.math.abs(event.x - downX) > slop || kotlin.math.abs(event.y - downY) > slop)) {
+                            dragging = startDragAndDrop(ClipData.newPlainText("", ""), View.DragShadowBuilder(container), code, 0)
+                        }
+                        true
+                    }
+                    MotionEvent.ACTION_UP -> {
+                        parent.requestDisallowInterceptTouchEvent(false)
+                        if (!dragging) performClick()
+                        true
+                    }
+                    MotionEvent.ACTION_CANCEL -> {
+                        parent.requestDisallowInterceptTouchEvent(false)
+                        true
+                    }
+                    else -> true
+                }
+            }
+        }
+        heading.addView(handle, LinearLayout.LayoutParams(dp(48), dp(48)))
         val labels = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         labels.addView(label(code, 17f).apply { setTypeface(typeface, Typeface.BOLD) })
         val name = label(code, 13f)
@@ -204,7 +248,6 @@ class MainActivity : Activity() {
             text = "⋮"
             contentDescription = getString(R.string.row_actions, code)
             setOnClickListener { showActions(this, code) }
-            setOnLongClickListener { startDragAndDrop(ClipData.newPlainText("", ""), View.DragShadowBuilder(container), code, 0) }
         }
         heading.addView(action, LinearLayout.LayoutParams(dp(48), dp(48)))
         container.addView(heading)
@@ -233,12 +276,37 @@ class MainActivity : Activity() {
             })
         }
         container.addView(input, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        container.addView(bottomMarker)
         container.setOnDragListener { _, event ->
             val dragged = event.localState as? String
             when (event.action) {
                 DragEvent.ACTION_DRAG_STARTED -> dragged in state.selected
-                DragEvent.ACTION_DROP -> { if (dragged != null) move(dragged, state.selected.indexOf(code)); true }
-                DragEvent.ACTION_DRAG_ENDED -> true
+                DragEvent.ACTION_DRAG_LOCATION -> {
+                    topMarker.visibility = if (dragged != code && event.y < container.height / 2f) View.VISIBLE else View.GONE
+                    bottomMarker.visibility = if (dragged != code && event.y >= container.height / 2f) View.VISIBLE else View.GONE
+                    val rowLocation = IntArray(2)
+                    val scrollLocation = IntArray(2)
+                    container.getLocationOnScreen(rowLocation)
+                    rowScroll.getLocationOnScreen(scrollLocation)
+                    val pointerY = rowLocation[1] + event.y - scrollLocation[1]
+                    when {
+                        pointerY < dp(48) -> rowScroll.scrollBy(0, -dp(16))
+                        pointerY > rowScroll.height - dp(48) -> rowScroll.scrollBy(0, dp(16))
+                    }
+                    true
+                }
+                DragEvent.ACTION_DROP -> {
+                    val after = event.y >= container.height / 2f
+                    topMarker.visibility = View.GONE
+                    bottomMarker.visibility = View.GONE
+                    if (dragged != null) applyMove(dragged, state.drop(dragged, code, after))
+                    true
+                }
+                DragEvent.ACTION_DRAG_EXITED, DragEvent.ACTION_DRAG_ENDED -> {
+                    topMarker.visibility = View.GONE
+                    bottomMarker.visibility = View.GONE
+                    true
+                }
                 else -> true
             }
         }
@@ -281,10 +349,15 @@ class MainActivity : Activity() {
     }
 
     private fun move(code: String, position: Int) {
+        applyMove(code, state.move(code, position))
+    }
+
+    private fun applyMove(code: String, moved: ConversionState) {
+        if (moved == state) return
         val focus = currentFocus as? EditText
         val start = focus?.selectionStart ?: 0
         val end = focus?.selectionEnd ?: 0
-        state = state.move(code, position)
+        state = moved
         save(); syncRows()
         focus?.let { it.requestFocus(); it.setSelection(start.coerceIn(0, it.length()), end.coerceIn(0, it.length())) }
         rows.announceForAccessibility(getString(R.string.moved, code, state.selected.indexOf(code) + 1))
@@ -350,6 +423,11 @@ class MainActivity : Activity() {
     }
 
     private fun label(value: String, size: Float) = TextView(this).apply { text = value; textSize = size }
+    private fun dropMarker() = View(this).apply {
+        setBackgroundColor(getColor(android.R.color.holo_blue_light))
+        visibility = View.GONE
+        layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(2))
+    }
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
     private data class CurrencyRow(val container: LinearLayout, val name: TextView, val input: EditText)
 }

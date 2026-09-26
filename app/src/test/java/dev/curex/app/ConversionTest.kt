@@ -61,6 +61,16 @@ class ConversionTest {
         assertEquals(state, state.add("EUR"))
     }
 
+    @Test fun droppingOnEitherHalfOfARowPlacesCurrencyAtThatEdge() {
+        assertEquals(listOf("EUR", "USD", "JPY"), state.drop("USD", "EUR", false).selected)
+        assertEquals(listOf("EUR", "JPY", "USD"), state.drop("USD", "JPY", true).selected)
+        assertEquals(listOf("JPY", "USD", "EUR"), state.drop("JPY", "USD", false).selected)
+        assertEquals(listOf("USD", "JPY", "EUR"), state.drop("JPY", "USD", true).selected)
+        assertEquals(state, state.drop("USD", "USD", true))
+        assertEquals(state.source, state.drop("USD", "JPY", true).source)
+        assertEquals(state.input, state.drop("USD", "JPY", true).input)
+    }
+
     @Test fun newSnapshotRecomputesTogetherAndMissingRatesStayUnavailable() {
         val fresh = snapshot.copy(rates = snapshot.rates + ("JPY" to Rate(BigDecimal("80"), date.minusDays(1))))
         assertEquals(0, BigDecimal("1250").compareTo(state.amount("JPY", fresh)))

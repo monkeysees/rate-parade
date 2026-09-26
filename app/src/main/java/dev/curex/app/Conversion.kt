@@ -43,6 +43,12 @@ data class ConversionState(
         return copy(selected = order)
     }
 
+    fun drop(code: String, target: String, after: Boolean): ConversionState {
+        if (code !in selected || target !in selected || code == target) return this
+        val remaining = selected - code
+        return move(code, remaining.indexOf(target) + if (after) 1 else 0)
+    }
+
     fun edit(code: String, text: String, separator: Char): ConversionState {
         require(code in selected)
         return copy(source = code, input = text, decimalSeparator = separator)
