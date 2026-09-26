@@ -17,8 +17,6 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 The debug APK is installable and signed with the local Android debug key. The optimized release APK is `app/build/outputs/apk/release/app-release-unsigned.apk`. For distribution, sign it with your own securely managed key using Android’s `apksigner`; no signing credentials are committed. Do not distribute an APK signed with a debug key as a production release.
 
-This delivery also includes `artifacts/cur-ex-1.0.0-release-local.apk`: the optimized release signed with the local debug key for installation/testing (65.7 KiB). Install with `adb install -r artifacts/cur-ex-1.0.0-release-local.apk`. Artifacts are excluded from Git; rebuild from source when cloning. See the verification document for exact sizes and hashes.
-
 ## Behavior
 
 - Enter decimal numbers without thousands separators. Locale-specific decimal separators and digits, zero, negative amounts, and partial input are supported. Empty or invalid input clears derived values rather than inventing zero. Numeric input supports 64 characters; longer text (up to 512 characters) is retained but marked invalid, never silently truncated into a different number.
@@ -34,4 +32,4 @@ This delivery also includes `artifacts/cur-ex-1.0.0-release-local.apk`: the opti
 
 See [PRIVACY.md](PRIVACY.md) and the in-app **Rates & privacy** notice. There are no accounts, telemetry, advertising, tracking, remote assets or Google Play Services dependencies. Blended currency reference data is from central banks and official sources via [Frankfurter](https://frankfurter.dev/); Rate Parade computes and rounds the displayed conversions. Rates are informational, can be delayed or revised, and are provided without warranty.
 
-Implementation notes and evidence are in [docs/verification.md](docs/verification.md). Release changes are recorded in [CHANGELOG.md](CHANGELOG.md).
+Release changes are recorded in [CHANGELOG.md](CHANGELOG.md).
