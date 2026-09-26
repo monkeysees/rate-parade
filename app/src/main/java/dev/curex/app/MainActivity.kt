@@ -18,11 +18,14 @@ import android.text.InputType
 import android.text.TextWatcher
 import android.view.DragEvent
 import android.view.Gravity
+import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
 import android.view.ViewGroup
 import android.view.WindowInsets
-import android.view.MotionEvent
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
 import android.widget.*
 import java.text.DateFormat
 import java.text.DecimalFormatSymbols
@@ -35,6 +38,8 @@ class MainActivity : Activity() {
     private var loaded = false
     private var refreshing = false
     private var changingText = false
+    private var imeVisible = false
+    private lateinit var root: LinearLayout
     private lateinit var rows: LinearLayout
     private lateinit var rowScroll: ScrollView
     private lateinit var status: TextView
@@ -105,13 +110,22 @@ class MainActivity : Activity() {
     }
 
     private fun buildScreen() {
-        val root = LinearLayout(this).apply {
+        root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(24), dp(12), dp(24), dp(8))
             setBackgroundColor(getColor(R.color.paper))
             isFocusableInTouchMode = true
         }
         root.setOnApplyWindowInsetsListener { view, insets ->
+            val keyboardVisible = if (android.os.Build.VERSION.SDK_INT >= 30) {
+                insets.isVisible(WindowInsets.Type.ime())
+            } else {
+                @Suppress("DEPRECATION")
+                val legacyImeInset = insets.systemWindowInsetBottom - insets.stableInsetBottom
+                legacyImeInset > dp(80)
+            }
+            if (imeVisible && !keyboardVisible) view.requestFocus()
+            imeVisible = keyboardVisible
             if (android.os.Build.VERSION.SDK_INT >= 30) {
                 val bars = insets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.ime())
                 view.setPadding(dp(24) + bars.left, dp(12) + bars.top, dp(24) + bars.right, dp(8) + bars.bottom)
@@ -131,14 +145,12 @@ class MainActivity : Activity() {
         scrollContent.addView(label(getString(R.string.app_name), 36f).apply {
             typeface = Typeface.create("serif", Typeface.NORMAL)
         })
-        scrollContent.addView(label(getString(R.string.edit_hint), 14f).apply {
-            setTextColor(getColor(R.color.muted))
-            setPadding(0, dp(8), 0, dp(24))
-        })
         rows = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         empty = label(getString(R.string.empty), 18f).apply { setPadding(0, dp(24), 0, dp(24)) }
         scrollContent.addView(empty)
-        scrollContent.addView(rows)
+        scrollContent.addView(rows, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            topMargin = dp(8)
+        })
         rowScroll = ScrollView(this).apply { addView(scrollContent); isVerticalScrollBarEnabled = false }
         root.addView(rowScroll, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
         add = quietButton(getString(R.string.add_currency), filled = true).apply {
@@ -288,8 +300,10 @@ class MainActivity : Activity() {
             setHintTextColor(getColor(R.color.muted))
             background = null
             setPadding(0, dp(4), 0, dp(8))
+            isCursorVisible = false
             setOnFocusChangeListener { _, focused ->
                 setTextColor(getColor(if (focused) R.color.accent else R.color.ink))
+                isCursorVisible = focused
             }
             inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL or InputType.TYPE_NUMBER_FLAG_SIGNED
             val zero = DecimalFormatSymbols.getInstance(locale).zeroDigit
@@ -298,6 +312,18 @@ class MainActivity : Activity() {
             setRawInputType(InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL or InputType.TYPE_NUMBER_FLAG_SIGNED)
             filters = arrayOf(InputFilter.LengthFilter(ConversionState.MAX_INPUT))
             setSingleLine(true)
+            imeOptions = EditorInfo.IME_ACTION_DONE
+            setOnEditorActionListener { _, actionId, event ->
+                val done = actionId == EditorInfo.IME_ACTION_DONE ||
+                    (actionId == EditorInfo.IME_NULL && event != null &&
+                        event.keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_DOWN)
+                if (done) {
+                    clearFocus()
+                    root.requestFocus()
+                    getSystemService(InputMethodManager::class.java).hideSoftInputFromWindow(windowToken, 0)
+                }
+                done
+            }
             minHeight = dp(52)
             contentDescription = getString(R.string.amount_description, code)
             importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO

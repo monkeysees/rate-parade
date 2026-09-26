@@ -14,7 +14,6 @@
     <string name="conversion_unavailable">Conversion unavailable</string>
     <string name="amount_description">%1$s amount</string>
     <string name="drag_currency">Drag %1$s to reorder, or tap for currency actions</string>
-    <string name="edit_hint">Tap any amount to convert</string>
     <string name="rate_details">Rates &amp; privacy</string>
     <string name="provider">Rates via Frankfurter</string>
     <string name="move_up">Move up</string>
