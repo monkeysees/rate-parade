@@ -17,6 +17,14 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 The debug APK is installable and signed with the local Android debug key. The optimized release APK is `app/build/outputs/apk/release/app-release-unsigned.apk`. For distribution, sign it with your own securely managed key using Android’s `apksigner`; no signing credentials are committed. Do not distribute an APK signed with a debug key as a production release.
 
+## GitHub builds and releases
+
+GitHub Actions runs the build command above for pull requests, pushes to `main`, version tags, and manual runs. Each run stores a debug APK under **Actions → Artifacts**. A `v`-prefixed version tag also builds an optimized release APK, signs and verifies it, and publishes it with a SHA-256 checksum under **Releases**.
+
+Before tagging a release, create a persistent Android release keystore and add these repository **Actions secrets**: `RELEASE_KEYSTORE_BASE64` (the keystore file encoded with `base64 -w 0 release.p12` on Linux), `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS`, and `RELEASE_KEY_PASSWORD`. Keep the original keystore and passwords safely backed up; updates must use the same signing key. The workflow never publishes an unsigned or debug-signed APK as a GitHub release.
+
+To release, increase `versionCode`, set `versionName` in `app/build.gradle.kts`, and move the corresponding notes from **Unreleased** into a `## x.y.z` section in `CHANGELOG.md`. Merge those changes to `main`, then push a matching tag such as `v1.1.0`. The release job rejects a tag whose version differs from `versionName` or has no changelog section. Keep `versionCode` increasing for every release so Android accepts updates.
+
 ## Behavior
 
 - Enter decimal numbers without thousands separators. Locale-specific decimal separators and digits, zero, negative amounts, and partial input are supported. Empty or invalid input clears derived values rather than inventing zero. Numeric input supports 64 characters; longer text (up to 512 characters) is retained but marked invalid, never silently truncated into a different number.
