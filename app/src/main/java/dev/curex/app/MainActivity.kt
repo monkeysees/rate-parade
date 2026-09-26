@@ -1,0 +1,370 @@
+package dev.curex.app
+
+import android.app.Activity
+import android.app.AlertDialog
+import android.content.ClipData
+import android.content.res.Configuration
+import android.graphics.Typeface
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.text.Editable
+import android.text.InputFilter
+import android.text.InputType
+import android.text.TextWatcher
+import android.view.DragEvent
+import android.view.Gravity
+import android.view.View
+import android.view.ViewGroup
+import android.view.WindowInsets
+import android.widget.*
+import java.text.DateFormat
+import java.text.DecimalFormatSymbols
+import java.util.Date
+
+class MainActivity : Activity() {
+    private val app get() = application as CurExApplication
+    private var state = ConversionState()
+    private var data = RateData(null, null)
+    private var loaded = false
+    private var refreshing = false
+    private var changingText = false
+    private lateinit var rows: LinearLayout
+    private lateinit var status: TextView
+    private lateinit var source: TextView
+    private lateinit var empty: TextView
+    private lateinit var refresh: Button
+    private lateinit var add: Button
+    private val rowViews = linkedMapOf<String, CurrencyRow>()
+    private val handler = Handler(Looper.getMainLooper())
+    private val statusTick = object : Runnable {
+        override fun run() { if (loaded) updateStatus(); handler.postDelayed(this, 60_000) }
+    }
+    private val locale get() = resources.configuration.locales[0]
+    private val separator get() = DecimalFormatSymbols.getInstance(locale).decimalSeparator
+    private val accent get() = if (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES) 0xFF79D7C4.toInt() else 0xFF006C60.toInt()
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        buildScreen()
+        app.storageExecutor.execute {
+            val saved = app.store.readState()
+            val cached = app.repository.load()
+            runOnUiThread {
+                if (isDestroyed) return@runOnUiThread
+                state = saved
+                // Android's instance state covers a rotation before a pending disk write completes.
+                savedInstanceState?.takeIf { it.containsKey("order") }?.let { bundle ->
+                    state = ConversionState(bundle.getStringArrayList("order") ?: ArrayList(saved.selected),
+                        bundle.getString("source"), bundle.getString("input", saved.input),
+                        bundle.getChar("separator", saved.decimalSeparator), bundle.getBoolean("initialized", saved.initialized))
+                }
+                if (state.decimalSeparator != separator) {
+                    val localized = state.input.map { char ->
+                        when {
+                            char == state.decimalSeparator -> separator
+                            char.digitToIntOrNull() != null -> '0' + char.digitToInt()
+                            else -> char
+                        }
+                    }.joinToString("")
+                    state = state.copy(input = localized, decimalSeparator = separator)
+                }
+                loaded = true
+                acceptData(cached)
+                requestRefresh(false)
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        handler.post(statusTick)
+        if (loaded) requestRefresh(false)
+    }
+
+    override fun onPause() {
+        handler.removeCallbacks(statusTick)
+        super.onPause()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        if (loaded) {
+            outState.putStringArrayList("order", ArrayList(state.selected))
+            outState.putString("source", state.source)
+            outState.putString("input", state.input)
+            outState.putChar("separator", state.decimalSeparator)
+            outState.putBoolean("initialized", state.initialized)
+        }
+        super.onSaveInstanceState(outState)
+    }
+
+    private fun buildScreen() {
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(16), dp(12), dp(16), dp(8))
+            isFocusableInTouchMode = true
+        }
+        root.setOnApplyWindowInsetsListener { view, insets ->
+            if (android.os.Build.VERSION.SDK_INT >= 30) {
+                val bars = insets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.ime())
+                view.setPadding(dp(16) + bars.left, dp(12) + bars.top, dp(16) + bars.right, dp(8) + bars.bottom)
+            } else {
+                @Suppress("DEPRECATION")
+                view.setPadding(dp(16) + insets.systemWindowInsetLeft, dp(12) + insets.systemWindowInsetTop,
+                    dp(16) + insets.systemWindowInsetRight, dp(8) + insets.systemWindowInsetBottom)
+            }
+            insets
+        }
+        root.addView(label(getString(R.string.app_name), 28f).apply { setTypeface(typeface, Typeface.BOLD) })
+        root.addView(label(getString(R.string.subtitle), 14f))
+        val toolbar = LinearLayout(this)
+        add = Button(this).apply { setText(R.string.add_currency); isEnabled = false; setOnClickListener { showPicker() } }
+        refresh = Button(this).apply { setText(R.string.refresh); isEnabled = false; setOnClickListener { requestRefresh(true) } }
+        toolbar.addView(add, LinearLayout.LayoutParams(0, dp(52), 1f))
+        toolbar.addView(refresh, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(52)))
+        root.addView(toolbar)
+        source = label(getString(R.string.source_empty), 14f).apply {
+            setTextColor(accent)
+            setPadding(0, dp(8), 0, dp(8))
+            maxLines = 2
+            ellipsize = android.text.TextUtils.TruncateAt.END
+        }
+        root.addView(source)
+        rows = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        empty = label(getString(R.string.empty), 18f).apply { setPadding(dp(8), dp(24), dp(8), dp(24)) }
+        val scrollContent = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; addView(empty); addView(rows) }
+        root.addView(ScrollView(this).apply { addView(scrollContent) }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+        status = label(getString(R.string.loading), 12f).apply { setPadding(0, dp(8), 0, dp(4)) }
+        scrollContent.addView(status)
+        scrollContent.addView(label(getString(R.string.attribution), 12f))
+        scrollContent.addView(Button(this).apply {
+            setText(R.string.privacy)
+            setOnClickListener {
+                val notice = label(getString(R.string.privacy_notice), 15f).apply { setPadding(dp(20), dp(12), dp(20), dp(12)); setTextIsSelectable(true) }
+                AlertDialog.Builder(this@MainActivity).setTitle(R.string.privacy)
+                    .setView(ScrollView(this@MainActivity).apply { addView(notice) })
+                    .setPositiveButton(R.string.close, null).show()
+            }
+        }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48)))
+        setContentView(root)
+        root.requestFocus()
+    }
+
+    private fun acceptData(fresh: RateData) {
+        data = fresh
+        if (!state.initialized && fresh.catalog != null && fresh.snapshot != null) {
+            val available = fresh.catalog.currencies.filter { it.code in fresh.snapshot.rates }.map { it.code }
+            val defaults = listOf("USD", "EUR", "GBP").filter { it in available }.ifEmpty { available.take(3) }
+            if (defaults.isNotEmpty()) {
+                state = ConversionState(defaults, defaults.first(), "1", separator, true)
+                save()
+            }
+        }
+        syncRows()
+        updateAmounts()
+        updateStatus()
+        add.isEnabled = fresh.catalog != null && fresh.snapshot != null
+    }
+
+    private fun requestRefresh(force: Boolean) {
+        if (refreshing) return
+        refreshing = true
+        updateStatus()
+        app.storageExecutor.execute { app.repository.refresh(force).thenAccept { fresh -> runOnUiThread {
+            if (!isDestroyed) {
+                refreshing = false
+                acceptData(fresh)
+            }
+        } } }
+    }
+
+    private fun save() {
+        val saved = state
+        app.storageExecutor.execute {
+            try { app.store.writeState(saved) } catch (_: Exception) {
+                runOnUiThread { if (!isDestroyed) Toast.makeText(this, R.string.save_failed, Toast.LENGTH_LONG).show() }
+            }
+        }
+    }
+
+    private fun syncRows() {
+        (rowViews.keys - state.selected.toSet()).forEach { code -> rows.removeView(rowViews.remove(code)?.container) }
+        state.selected.forEachIndexed { index, code ->
+            val row = rowViews.getOrPut(code) { createRow(code) }
+            if (rows.indexOfChild(row.container) != index) {
+                rows.removeView(row.container)
+                rows.addView(row.container, index)
+            }
+            row.name.text = data.catalog?.currencies?.find { it.code == code }?.name ?: code
+        }
+        empty.visibility = if (state.selected.isEmpty()) View.VISIBLE else View.GONE
+    }
+
+    private fun createRow(code: String): CurrencyRow {
+        val container = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(0, dp(8), 0, dp(8)) }
+        val heading = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
+        val labels = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        labels.addView(label(code, 17f).apply { setTypeface(typeface, Typeface.BOLD) })
+        val name = label(code, 13f)
+        labels.addView(name)
+        heading.addView(labels, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        val action = Button(this).apply {
+            text = "⋮"
+            contentDescription = getString(R.string.row_actions, code)
+            setOnClickListener { showActions(this, code) }
+            setOnLongClickListener { startDragAndDrop(ClipData.newPlainText("", ""), View.DragShadowBuilder(container), code, 0) }
+        }
+        heading.addView(action, LinearLayout.LayoutParams(dp(48), dp(48)))
+        container.addView(heading)
+        val input = EditText(this).apply {
+            textSize = 24f
+            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL or InputType.TYPE_NUMBER_FLAG_SIGNED
+            val zero = DecimalFormatSymbols.getInstance(locale).zeroDigit
+            val digits = (0..9).map { zero + it }.joinToString("")
+            keyListener = android.text.method.DigitsKeyListener.getInstance("0123456789$digits-$separator")
+            setRawInputType(InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL or InputType.TYPE_NUMBER_FLAG_SIGNED)
+            filters = arrayOf(InputFilter.LengthFilter(ConversionState.MAX_INPUT))
+            setSingleLine(true)
+            minHeight = dp(52)
+            contentDescription = getString(R.string.amount_description, code)
+            importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO
+            isSaveEnabled = false
+            addTextChangedListener(object : TextWatcher {
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+                override fun afterTextChanged(s: Editable?) {
+                    if (changingText) return
+                    state = state.edit(code, s.toString(), separator)
+                    save()
+                    updateAmounts()
+                }
+            })
+        }
+        container.addView(input, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        val date = label("", 12f)
+        container.addView(date)
+        container.setOnDragListener { _, event ->
+            val dragged = event.localState as? String
+            when (event.action) {
+                DragEvent.ACTION_DRAG_STARTED -> dragged in state.selected
+                DragEvent.ACTION_DROP -> { if (dragged != null) move(dragged, state.selected.indexOf(code)); true }
+                DragEvent.ACTION_DRAG_ENDED -> true
+                else -> true
+            }
+        }
+        return CurrencyRow(container, name, input, date)
+    }
+
+    private fun updateAmounts() {
+        changingText = true
+        try {
+            rowViews.forEach { (code, row) ->
+                val text = if (code == state.source) state.input else state.amount(code, data.snapshot)?.let { displayAmount(it, code, locale) }.orEmpty()
+                // Never replace an unchanged Editable: this preserves selection and IME composing spans.
+                if (row.input.text.toString() != text) row.input.setText(text)
+                row.input.hint = when {
+                    data.snapshot?.rates?.containsKey(code) != true -> getString(R.string.missing_rate)
+                    state.source !in data.snapshot?.rates.orEmpty() -> getString(R.string.conversion_unavailable)
+                    else -> "—"
+                }
+                row.input.error = if (code == state.source && state.input.isNotEmpty() && parseInput(state.input, state.decimalSeparator) == null)
+                    getString(R.string.invalid_input) else null
+                val rate = data.snapshot?.rates?.get(code)
+                row.date.text = if (rate == null) getString(R.string.missing_rate) else getString(R.string.rate_date, rate.date.toString())
+            }
+        } finally { changingText = false }
+        source.text = state.source?.let { getString(R.string.source, it, state.input.ifEmpty { "—" }) } ?: getString(R.string.source_empty)
+    }
+
+    private fun showActions(anchor: View, code: String) {
+        PopupMenu(this, anchor).apply {
+            menu.add(0, 1, 0, R.string.move_up).isEnabled = state.selected.indexOf(code) > 0
+            menu.add(0, 2, 1, R.string.move_down).isEnabled = state.selected.indexOf(code) < state.selected.lastIndex
+            menu.add(0, 3, 2, R.string.remove)
+            setOnMenuItemClickListener {
+                when (it.itemId) {
+                    1 -> move(code, state.selected.indexOf(code) - 1)
+                    2 -> move(code, state.selected.indexOf(code) + 1)
+                    3 -> { state = state.remove(code); save(); syncRows(); updateAmounts() }
+                }
+                true
+            }
+            show()
+        }
+    }
+
+    private fun move(code: String, position: Int) {
+        val focus = currentFocus as? EditText
+        val start = focus?.selectionStart ?: 0
+        val end = focus?.selectionEnd ?: 0
+        state = state.move(code, position)
+        save(); syncRows()
+        focus?.let { it.requestFocus(); it.setSelection(start.coerceIn(0, it.length()), end.coerceIn(0, it.length())) }
+        rows.announceForAccessibility(getString(R.string.moved, code, state.selected.indexOf(code) + 1))
+    }
+
+    private fun showPicker() {
+        val catalog = data.catalog ?: return
+        val content = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(dp(16), 0, dp(16), 0) }
+        val search = EditText(this).apply { setHint(R.string.search_hint); setSingleLine(true); inputType = InputType.TYPE_CLASS_TEXT }
+        content.addView(search)
+        content.addView(label(getString(R.string.catalog_explanation), 12f))
+        val list = ListView(this)
+        content.addView(list, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(320)))
+        val none = label(getString(R.string.no_matches), 16f)
+        content.addView(none)
+        list.emptyView = none
+        var choices = emptyList<CurrencyInfo>()
+        fun filter(query: String) {
+            choices = catalog.currencies.filter { currency ->
+                currency.code !in state.selected && currency.code in data.snapshot?.rates.orEmpty() &&
+                    (currency.code.contains(query, true) || currency.name.contains(query, true))
+            }
+            list.adapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, choices.map { "${it.code} · ${it.name}" })
+        }
+        filter("")
+        search.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) { filter(s.toString().trim()) }
+            override fun afterTextChanged(s: Editable?) = Unit
+        })
+        val dialog = AlertDialog.Builder(this).setTitle(R.string.add_currency).setView(content).setNegativeButton(R.string.close, null).create()
+        list.setOnItemClickListener { _, _, position, _ ->
+            state = state.add(choices[position].code)
+            save(); syncRows(); updateAmounts()
+            dialog.dismiss()
+        }
+        dialog.show()
+    }
+
+    private fun updateStatus() {
+        if (!::status.isInitialized) return
+        refresh.isEnabled = loaded && !refreshing
+        val snapshot = data.snapshot
+        val messages = mutableListOf<String>()
+        if (refreshing) messages += getString(R.string.refreshing)
+        if (!online()) messages += getString(R.string.offline)
+        if (data.error) messages += getString(R.string.refresh_failed)
+        if (snapshot == null) messages += getString(R.string.no_rates) else {
+            messages += getString(if (refreshDue(snapshot.fetchedAt, System.currentTimeMillis())) R.string.stale else R.string.cached)
+            val dates = snapshot.rates.values.map { it.date }
+            messages += if (dates.min() == dates.max()) getString(R.string.effective, dates.min().toString())
+                else getString(R.string.mixed_dates, dates.min().toString(), dates.max().toString())
+            messages += getString(R.string.fetched, DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT, locale).format(Date(snapshot.fetchedAt)))
+        }
+        if (data.catalog == null) messages += getString(R.string.no_catalog)
+        status.text = messages.joinToString("\n")
+    }
+
+    private fun online(): Boolean {
+        val connectivity = getSystemService(ConnectivityManager::class.java)
+        val capabilities = connectivity.getNetworkCapabilities(connectivity.activeNetwork)
+        return capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true
+    }
+
+    private fun label(value: String, size: Float) = TextView(this).apply { text = value; textSize = size }
+    private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
+    private data class CurrencyRow(val container: LinearLayout, val name: TextView, val input: EditText, val date: TextView)
+}
