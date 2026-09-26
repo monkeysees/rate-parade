@@ -1,5 +1,15 @@
 # Verification
 
+## Ledger design refresh — 2026-09-26
+
+The Unreleased design uses shared paper, ink, sage, and divider colors with explicit light/dark variants. A serif masthead, large editable amounts, flat rows, and one combined drag/action control replace the previous toolbar and duplicated row controls. Add currency follows the rows; refresh sits beside the concise rate status. Effective dates and exceptional states remain visible, while cache timestamps and the full attribution/privacy notice are available under Rates & privacy. The entire screen scrolls to accommodate the keyboard, landscape, and larger text.
+
+The existing drag test had an incorrect expectation for dropping USD immediately before its already-adjacent EUR row. The assertion now checks unchanged order, with an additional assertion for moving USD before a more distant row. Conversion and ordering implementation are unchanged.
+
+Verification: all 16 JVM tests pass; `lintDebug` and `assembleDebug` succeed. Lint reports only the existing Gradle-version advisory. Light navigation-bar icons are configured through API-27 theme resources; API 26 retains a dark navigation bar for legibility. The updated installable debug APK is `app/build/outputs/apk/debug/app-debug.apk`.
+
+No device or emulator is attached, so visual rendering, large-font layouts, keyboard behavior, TalkBack, and drag gestures still require the device acceptance checks below. The original release artifact measurements below describe the earlier delivery, not this design refresh.
+
 ## Design and upstream checks
 
 On 2026-09-26 the required Frankfurter documentation and both live `/v2/currencies` and `/v2/rates?base=USD` endpoints were inspected. The catalog was an array of objects with `iso_code` and `name`; rates were an array with `date`, `base`, `quote`, and numeric `rate`. The live blended response had multiple effective dates. The application preserves decimal token text, validates the whole payload, and stores per-currency dates. It inserts the mathematically exact USD identity rate only, never inventing rates for missing currencies.

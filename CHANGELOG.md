@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Redesign the converter as a quiet currency ledger with paper-and-sage themes, larger amounts, lighter controls, and compact rate details.
 - Rename the app to Rate Parade.
 - Add visible drag handles for placing currencies anywhere in the list.
 - Remove the source summary and per-currency rate dates; show effective dates once in the status area.

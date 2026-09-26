@@ -3,7 +3,6 @@
     <string name="subtitle">Currency converter</string>
     <string name="refresh">Refresh</string>
     <string name="add_currency">Add currency</string>
-    <string name="privacy">Privacy &amp; data</string>
     <string name="close">Close</string>
     <string name="loading">Loading local data…</string>
     <string name="refreshing">Refreshing rates…</string>
@@ -14,8 +13,10 @@
     <string name="missing_rate">No cached rate</string>
     <string name="conversion_unavailable">Conversion unavailable</string>
     <string name="amount_description">%1$s amount</string>
-    <string name="row_actions">Actions for %1$s</string>
-    <string name="drag_currency">Drag %1$s to reorder</string>
+    <string name="drag_currency">Drag %1$s to reorder, or tap for currency actions</string>
+    <string name="edit_hint">Tap any amount to convert</string>
+    <string name="rate_details">Rates &amp; privacy</string>
+    <string name="provider">ECB · via Frankfurter</string>
     <string name="move_up">Move up</string>
     <string name="move_down">Move down</string>
     <string name="remove">Remove</string>

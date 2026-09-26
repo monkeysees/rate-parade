@@ -3,7 +3,10 @@ package dev.curex.app
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.ClipData
+import android.content.res.ColorStateList
 import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.RippleDrawable
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Bundle
@@ -38,6 +41,7 @@ class MainActivity : Activity() {
     private lateinit var empty: TextView
     private lateinit var refresh: Button
     private lateinit var add: Button
+    private var rateDetails = ""
     private val rowViews = linkedMapOf<String, CurrencyRow>()
     private val handler = Handler(Looper.getMainLooper())
     private val statusTick = object : Runnable {
@@ -103,45 +107,71 @@ class MainActivity : Activity() {
     private fun buildScreen() {
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(16), dp(12), dp(16), dp(8))
+            setPadding(dp(24), dp(12), dp(24), dp(8))
+            setBackgroundColor(getColor(R.color.paper))
             isFocusableInTouchMode = true
         }
         root.setOnApplyWindowInsetsListener { view, insets ->
             if (android.os.Build.VERSION.SDK_INT >= 30) {
                 val bars = insets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.ime())
-                view.setPadding(dp(16) + bars.left, dp(12) + bars.top, dp(16) + bars.right, dp(8) + bars.bottom)
+                view.setPadding(dp(24) + bars.left, dp(12) + bars.top, dp(24) + bars.right, dp(8) + bars.bottom)
             } else {
                 @Suppress("DEPRECATION")
-                view.setPadding(dp(16) + insets.systemWindowInsetLeft, dp(12) + insets.systemWindowInsetTop,
-                    dp(16) + insets.systemWindowInsetRight, dp(8) + insets.systemWindowInsetBottom)
+                view.setPadding(dp(24) + insets.systemWindowInsetLeft, dp(12) + insets.systemWindowInsetTop,
+                    dp(24) + insets.systemWindowInsetRight, dp(8) + insets.systemWindowInsetBottom)
             }
             insets
         }
-        root.addView(label(getString(R.string.app_name), 28f).apply { setTypeface(typeface, Typeface.BOLD) })
-        root.addView(label(getString(R.string.subtitle), 14f))
-        val toolbar = LinearLayout(this)
-        add = Button(this).apply { setText(R.string.add_currency); isEnabled = false; setOnClickListener { showPicker() } }
-        refresh = Button(this).apply { setText(R.string.refresh); isEnabled = false; setOnClickListener { requestRefresh(true) } }
-        toolbar.addView(add, LinearLayout.LayoutParams(0, dp(52), 1f))
-        toolbar.addView(refresh, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(52)))
-        root.addView(toolbar)
+        val scrollContent = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        scrollContent.addView(label(getString(R.string.subtitle).uppercase(locale), 11f).apply {
+            letterSpacing = 0.18f
+            setTextColor(getColor(R.color.accent))
+            setPadding(0, dp(16), 0, dp(8))
+        })
+        scrollContent.addView(label(getString(R.string.app_name), 36f).apply {
+            typeface = Typeface.create("serif", Typeface.NORMAL)
+        })
+        scrollContent.addView(label(getString(R.string.edit_hint), 14f).apply {
+            setTextColor(getColor(R.color.muted))
+            setPadding(0, dp(8), 0, dp(24))
+        })
         rows = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        empty = label(getString(R.string.empty), 18f).apply { setPadding(dp(8), dp(24), dp(8), dp(24)) }
-        val scrollContent = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; addView(empty); addView(rows) }
-        rowScroll = ScrollView(this).apply { addView(scrollContent) }
+        empty = label(getString(R.string.empty), 18f).apply { setPadding(0, dp(24), 0, dp(24)) }
+        scrollContent.addView(empty)
+        scrollContent.addView(rows)
+        rowScroll = ScrollView(this).apply { addView(scrollContent); isVerticalScrollBarEnabled = false }
         root.addView(rowScroll, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
-        status = label(getString(R.string.loading), 12f).apply { setPadding(0, dp(8), 0, dp(4)) }
-        scrollContent.addView(status)
-        scrollContent.addView(label(getString(R.string.attribution), 12f))
-        scrollContent.addView(Button(this).apply {
-            setText(R.string.privacy)
+        add = quietButton(getString(R.string.add_currency), filled = true).apply {
+            isEnabled = false
+            setOnClickListener { showPicker() }
+        }
+        scrollContent.addView(add, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+            topMargin = dp(20); bottomMargin = dp(24)
+        })
+        scrollContent.addView(divider())
+        val rateBar = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
+        status = label(getString(R.string.loading), 12f).apply {
+            setTextColor(getColor(R.color.muted))
+            setPadding(0, dp(16), dp(8), dp(8))
+        }
+        rateBar.addView(status, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        refresh = quietButton(getString(R.string.refresh)).apply {
+            isEnabled = false
+            setOnClickListener { requestRefresh(true) }
+        }
+        rateBar.addView(refresh)
+        scrollContent.addView(rateBar)
+        scrollContent.addView(label(getString(R.string.provider), 12f).apply { setTextColor(getColor(R.color.muted)) })
+        scrollContent.addView(quietButton(getString(R.string.rate_details)).apply {
             setOnClickListener {
-                val notice = label(getString(R.string.privacy_notice), 15f).apply { setPadding(dp(20), dp(12), dp(20), dp(12)); setTextIsSelectable(true) }
-                AlertDialog.Builder(this@MainActivity).setTitle(R.string.privacy)
+                val notice = label(rateDetails + "\n\n" + getString(R.string.attribution) + "\n\n" + getString(R.string.privacy_notice), 15f).apply {
+                    setPadding(dp(24), dp(12), dp(24), dp(12)); setTextIsSelectable(true)
+                }
+                AlertDialog.Builder(this@MainActivity).setTitle(R.string.rate_details)
                     .setView(ScrollView(this@MainActivity).apply { addView(notice) })
                     .setPositiveButton(R.string.close, null).show()
             }
-        }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48)))
+        })
         setContentView(root)
         root.requestFocus()
     }
@@ -197,12 +227,14 @@ class MainActivity : Activity() {
     }
 
     private fun createRow(code: String): CurrencyRow {
-        val container = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(0, dp(8), 0, dp(8)) }
+        val container = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(0, dp(12), 0, dp(12)) }
         val topMarker = dropMarker()
         val bottomMarker = dropMarker()
         container.addView(topMarker)
         val heading = LinearLayout(this).apply { gravity = Gravity.CENTER_VERTICAL }
-        val handle = label("≡", 28f).apply {
+        val handle = quietButton("≡").apply {
+            textSize = 24f
+            setPadding(0, 0, 0, 0)
             gravity = Gravity.CENTER
             contentDescription = getString(R.string.drag_currency, code)
             setOnClickListener { showActions(this, code) }
@@ -238,21 +270,27 @@ class MainActivity : Activity() {
                 }
             }
         }
-        heading.addView(handle, LinearLayout.LayoutParams(dp(48), dp(48)))
         val labels = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        labels.addView(label(code, 17f).apply { setTypeface(typeface, Typeface.BOLD) })
-        val name = label(code, 13f)
+        labels.addView(label(code, 15f).apply {
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            letterSpacing = 0.1f
+            setTextColor(getColor(R.color.accent))
+        })
+        val name = label(code, 12f).apply { setTextColor(getColor(R.color.muted)) }
         labels.addView(name)
         heading.addView(labels, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-        val action = Button(this).apply {
-            text = "⋮"
-            contentDescription = getString(R.string.row_actions, code)
-            setOnClickListener { showActions(this, code) }
-        }
-        heading.addView(action, LinearLayout.LayoutParams(dp(48), dp(48)))
+        heading.addView(handle, LinearLayout.LayoutParams(dp(48), dp(48)))
         container.addView(heading)
         val input = EditText(this).apply {
-            textSize = 24f
+            textSize = 32f
+            typeface = Typeface.create("sans-serif-light", Typeface.NORMAL)
+            setTextColor(getColor(R.color.ink))
+            setHintTextColor(getColor(R.color.muted))
+            background = null
+            setPadding(0, dp(4), 0, dp(8))
+            setOnFocusChangeListener { _, focused ->
+                setTextColor(getColor(if (focused) R.color.accent else R.color.ink))
+            }
             inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL or InputType.TYPE_NUMBER_FLAG_SIGNED
             val zero = DecimalFormatSymbols.getInstance(locale).zeroDigit
             val digits = (0..9).map { zero + it }.joinToString("")
@@ -276,6 +314,7 @@ class MainActivity : Activity() {
             })
         }
         container.addView(input, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        container.addView(divider())
         container.addView(bottomMarker)
         container.setOnDragListener { _, event ->
             val dragged = event.localState as? String
@@ -406,14 +445,18 @@ class MainActivity : Activity() {
         if (!online()) messages += getString(R.string.offline)
         if (data.error) messages += getString(R.string.refresh_failed)
         if (snapshot == null) messages += getString(R.string.no_rates) else {
-            messages += getString(if (refreshDue(snapshot.fetchedAt, System.currentTimeMillis())) R.string.stale else R.string.cached)
+            if (refreshDue(snapshot.fetchedAt, System.currentTimeMillis())) messages += getString(R.string.stale)
             val dates = snapshot.rates.values.map { it.date }
             messages += if (dates.min() == dates.max()) getString(R.string.effective, dates.min().toString())
                 else getString(R.string.mixed_dates, dates.min().toString(), dates.max().toString())
-            messages += getString(R.string.fetched, DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT, locale).format(Date(snapshot.fetchedAt)))
         }
         if (data.catalog == null) messages += getString(R.string.no_catalog)
         status.text = messages.joinToString("\n")
+        if (snapshot != null) {
+            messages += getString(R.string.cached)
+            messages += getString(R.string.fetched, DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT, locale).format(Date(snapshot.fetchedAt)))
+        }
+        rateDetails = messages.joinToString("\n")
     }
 
     private fun online(): Boolean {
@@ -422,9 +465,38 @@ class MainActivity : Activity() {
         return capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true
     }
 
-    private fun label(value: String, size: Float) = TextView(this).apply { text = value; textSize = size }
+    private fun quietButton(value: String, filled: Boolean = false) = Button(this).apply {
+        text = value
+        textSize = 14f
+        isAllCaps = false
+        minHeight = dp(48)
+        minimumHeight = dp(48)
+        minWidth = 0
+        minimumWidth = 0
+        setPadding(dp(16), dp(8), dp(16), dp(8))
+        stateListAnimator = null
+        setTextColor(ColorStateList(
+            arrayOf(intArrayOf(-android.R.attr.state_enabled), intArrayOf()),
+            intArrayOf(getColor(R.color.muted), getColor(R.color.accent))
+        ))
+        val shape = GradientDrawable().apply {
+            setColor(getColor(if (filled) R.color.wash else R.color.paper))
+            cornerRadius = dp(8).toFloat()
+        }
+        background = RippleDrawable(ColorStateList.valueOf(getColor(R.color.rule)), shape, null)
+    }
+
+    private fun divider() = View(this).apply {
+        setBackgroundColor(getColor(R.color.rule))
+        layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1))
+        importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+    }
+
+    private fun label(value: String, size: Float) = TextView(this).apply {
+        text = value; textSize = size; setTextColor(getColor(R.color.ink))
+    }
     private fun dropMarker() = View(this).apply {
-        setBackgroundColor(getColor(android.R.color.holo_blue_light))
+        setBackgroundColor(getColor(R.color.accent))
         visibility = View.GONE
         layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(2))
     }

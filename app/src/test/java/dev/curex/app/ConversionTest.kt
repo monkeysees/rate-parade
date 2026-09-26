@@ -62,7 +62,8 @@ class ConversionTest {
     }
 
     @Test fun droppingOnEitherHalfOfARowPlacesCurrencyAtThatEdge() {
-        assertEquals(listOf("EUR", "USD", "JPY"), state.drop("USD", "EUR", false).selected)
+        assertEquals(state, state.drop("USD", "EUR", false))
+        assertEquals(listOf("EUR", "USD", "JPY"), state.drop("USD", "JPY", false).selected)
         assertEquals(listOf("EUR", "JPY", "USD"), state.drop("USD", "JPY", true).selected)
         assertEquals(listOf("JPY", "USD", "EUR"), state.drop("JPY", "USD", false).selected)
         assertEquals(listOf("USD", "JPY", "EUR"), state.drop("JPY", "USD", true).selected)
