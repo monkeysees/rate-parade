@@ -19,7 +19,7 @@ The debug APK is installable and signed with the local Android debug key. The op
 
 ## GitHub builds and releases
 
-GitHub Actions runs the build command above for pull requests, pushes to `main`, version tags, and manual runs. Each run stores a debug APK under **Actions → Artifacts**. A `v`-prefixed version tag also builds an optimized release APK, signs and verifies it, and publishes it with a SHA-256 checksum under **Releases**.
+GitHub Actions tests, lints, and builds an optimized release APK for pull requests, pushes to `main`, version tags, and manual runs. Each run stores the unsigned release APK under **Actions → Artifacts**. A `v`-prefixed version tag also signs and verifies that APK, then publishes the signed APK with a SHA-256 checksum under **Releases**.
 
 Before tagging a release, create a persistent Android release keystore and add these repository **Actions secrets**: `RELEASE_KEYSTORE_BASE64` (the keystore file encoded with `base64 -w 0 release.p12` on Linux), `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS`, and `RELEASE_KEY_PASSWORD`. Keep the original keystore and passwords safely backed up; updates must use the same signing key. The workflow never publishes an unsigned or debug-signed APK as a GitHub release.
 

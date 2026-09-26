@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Add GitHub Actions builds and signed, version-tagged APK releases.
+- Add GitHub Actions release APK artifacts and signed, version-tagged APK releases.
 - Restore AMD and other non-ECB currencies with Frankfurter’s full blended feed; refresh restricted caches on upgrade while retaining offline rates.
 - Redesign the converter as a quiet currency ledger with paper-and-sage themes, larger amounts, lighter controls, and compact rate details.
 - Rename the app to Rate Parade.
