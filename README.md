@@ -38,6 +38,7 @@ The app uses Kotlin and the Android platform UI, storage, and background schedul
 
 - **Platform:** Android 8.0 (API 26) or newer.
 - **Source:** [monkeysees/rate-parade](https://github.com/monkeysees/rate-parade).
+- **License:** [MIT](LICENSE).
 - **Privacy and data use:** [PRIVACY.md](PRIVACY.md).
 - **Release history:** [CHANGELOG.md](CHANGELOG.md).
 - **Rate data:** Central banks and official sources, provided through [Frankfurter](https://frankfurter.dev/providers/). Rate Parade calculates the displayed conversions; rates are for reference and may be delayed or revised.
