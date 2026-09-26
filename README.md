@@ -4,7 +4,7 @@ A compact, native Android currency converter. Edit any row to convert locally, s
 
 The interface uses a paper-and-sage ledger style, with a serif title, large editable amounts, and fine row dividers. Tap a drag handle for move/remove actions. **Add currency** follows the list; **Refresh** sits beside the effective date. Offline, stale-rate, and failure notices remain visible, while fetch timestamps and the full data notice are under **Rates & privacy**.
 
-Rates come from the European Central Bank through Frankfurter. Currency names are discovered from the API; the picker offers the currencies present in the full ECB snapshot. This deliberately uses one attributable reference-rate provider rather than Frankfurter’s wider blended feed. The full supported snapshot is requested regardless of your selected currencies. Existing selections remain visible if a currency disappears from a later snapshot, with an unavailable-rate indication.
+Rates come from Frankfurter’s blended feed of central banks and official sources, including Armenian dram (AMD). Currency names are discovered from the API; the picker offers currencies present in both the catalog and the full rate snapshot. The full supported snapshot is requested regardless of your selected currencies. Existing selections remain visible if a currency disappears from a later snapshot, with an unavailable-rate indication.
 
 ## Build
 
@@ -25,13 +25,13 @@ This delivery also includes `artifacts/cur-ex-1.0.0-release-local.apk`: the opti
 - All conversions use `source × targetRate / sourceRate` from one common USD snapshot. Arithmetic uses exact decimal multiplication and 80 significant digits for division; display rounds to at most six decimal places. Changing focus alone never changes the source. The source’s raw input is retained; editing another row makes its entered text the new source.
 - Removing a source row keeps its exact amount as the conversion anchor until another row is edited. Reordering never changes that anchor. Even an intentionally empty list survives restart.
 - The rate effective date appears once in the status area; when currencies have different effective dates, it shows the range.
-- The first launch fetches rates. Foreground entry refreshes when the last successful fetch is at least eight hours old (or the clock moved backwards). Manual refresh always requests rates. Concurrent requests share one operation.
+- The first launch fetches rates. Upgrading from the former ECB-only feed refreshes the restricted cache on launch, retaining saved rates if offline. Foreground entry refreshes when the last successful fetch is at least eight hours old (or the clock moved backwards). Manual refresh always requests rates. Concurrent requests share one operation.
 - JobScheduler requests a persisted network-constrained refresh every eight hours. Android can defer it, especially under battery restrictions; force-stopping the app also prevents background work until it is opened again. No exact alarms, foreground services or battery exemptions are used.
 - A transport failure gets at most one retry after 500 ms, with 15-second connect/read timeouts. Invalid payloads are rejected. A failed refresh retains the last valid snapshot and its original fetch timestamp. Dates are retained per currency and differing dates are disclosed. Catalog data is cached separately for 30 days.
 - Selection state, catalog and rates are separate, versioned atomic files under app-private `noBackupFilesDir`. Network and file work use background executors. Every input edit queues a persistence write; rotation also preserves the in-memory state. As with other asynchronous persistence, abrupt termination before a queued write completes may lose the very latest edit.
 
 ## Privacy and data
 
-See [PRIVACY.md](PRIVACY.md) and the in-app **Rates & privacy** notice. There are no accounts, telemetry, advertising, tracking, remote assets or Google Play Services dependencies. Currency reference data is from the ECB via [Frankfurter](https://frankfurter.dev/); Rate Parade computes and rounds the displayed conversions. Rates are informational, can be delayed or revised, and are provided without warranty.
+See [PRIVACY.md](PRIVACY.md) and the in-app **Rates & privacy** notice. There are no accounts, telemetry, advertising, tracking, remote assets or Google Play Services dependencies. Blended currency reference data is from central banks and official sources via [Frankfurter](https://frankfurter.dev/); Rate Parade computes and rounds the displayed conversions. Rates are informational, can be delayed or revised, and are provided without warranty.
 
 Implementation notes and evidence are in [docs/verification.md](docs/verification.md). Release changes are recorded in [CHANGELOG.md](CHANGELOG.md).

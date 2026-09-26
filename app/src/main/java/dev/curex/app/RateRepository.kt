@@ -39,7 +39,8 @@ class RateRepository(
                     catalog = fresh
                 }
             } catch (_: Exception) { failed = true }
-            if (force || refreshDue(snapshot?.fetchedAt, now())) {
+            // Installed ECB-only caches remain usable offline but must refresh after this upgrade.
+            if (force || snapshot?.coverageVersion == 1 || refreshDue(snapshot?.fetchedAt, now())) {
                 try {
                     val fresh = Snapshot(gateway.rates().toMap(), now())
                     store.writeSnapshot(fresh)

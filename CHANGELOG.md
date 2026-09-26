@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Restore AMD and other non-ECB currencies with Frankfurter’s full blended feed; refresh restricted caches on upgrade while retaining offline rates.
 - Redesign the converter as a quiet currency ledger with paper-and-sage themes, larger amounts, lighter controls, and compact rate details.
 - Rename the app to Rate Parade.
 - Add visible drag handles for placing currencies anywhere in the list.

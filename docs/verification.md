@@ -1,5 +1,15 @@
 # Verification
 
+## Currency coverage fix — 2026-09-26
+
+The previous `providers=ecb` restriction excluded AMD and 135 other currently available currencies. A live comparison returned 30 currencies including USD for the restricted request and 166 for the full feed/catalog intersection. `python3 scripts/check-currency-coverage.py` reproduced missing AMD, AED, GEL, KZT, UAH, and VND before the fix and passes after removing the filter. This network smoke check follows the actual gateway request paths; availability and counts can change upstream.
+
+Rates now use `/v2/rates?base=USD`, with attribution and privacy notices updated for Frankfurter’s blended feed. Rate cache version 2 marks full-feed snapshots. Existing version-1 snapshots remain readable for offline use and trigger a refresh even inside the eight-hour interval. A regression test starts from a serialized version-1 cache, verifies offline retention and timestamp preservation, then verifies expanded rates are persisted and normal cache reuse resumes. It failed before the migration change.
+
+The ECB-only descriptions in the original verification below are historical and superseded by this section. The current feed and provider terms were checked against https://frankfurter.dev/ and https://frankfurter.dev/license/.
+
+Verification: 17 JVM tests pass with zero failures or errors; `lintDebug` and `assembleDebug` pass, with only the existing Gradle-version advisory. The live coverage check passes. No device is attached; on-device upgrade and picker interaction remain unverified. The rebuilt APK is `app/build/outputs/apk/debug/app-debug.apk`.
+
 ## Ledger design refresh — 2026-09-26
 
 The Unreleased design uses shared paper, ink, sage, and divider colors with explicit light/dark variants. A serif masthead, large editable amounts, flat rows, and one combined drag/action control replace the previous toolbar and duplicated row controls. Add currency follows the rows; refresh sits beside the concise rate status. Effective dates and exceptional states remain visible, while cache timestamps and the full attribution/privacy notice are available under Rates & privacy. The entire screen scrolls to accommodate the keyboard, landscape, and larger text.

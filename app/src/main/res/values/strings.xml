@@ -16,14 +16,14 @@
     <string name="drag_currency">Drag %1$s to reorder, or tap for currency actions</string>
     <string name="edit_hint">Tap any amount to convert</string>
     <string name="rate_details">Rates &amp; privacy</string>
-    <string name="provider">ECB · via Frankfurter</string>
+    <string name="provider">Rates via Frankfurter</string>
     <string name="move_up">Move up</string>
     <string name="move_down">Move down</string>
     <string name="remove">Remove</string>
     <string name="moved">%1$s moved to position %2$d</string>
     <string name="search_hint">Search code or name</string>
     <string name="no_matches">No matching available currencies</string>
-    <string name="catalog_explanation">Available ECB currencies · names from Frankfurter</string>
+    <string name="catalog_explanation">Available currencies · names from Frankfurter</string>
     <string name="effective">Effective: %1$s</string>
     <string name="mixed_dates">Effective: %1$s to %2$s · dates differ</string>
     <string name="fetched">Fetched: %1$s</string>
@@ -32,6 +32,6 @@
     <string name="offline">Offline · using saved data</string>
     <string name="refresh_failed">Refresh failed · saved rates retained</string>
     <string name="save_failed">Could not save changes. Check free storage.</string>
-    <string name="attribution">ECB reference data via Frankfurter. Conversions calculated by Rate Parade.</string>
-    <string name="privacy_notice">Rate Parade stores your amounts, selected currencies and order only in app-private storage. Cloud backup and device transfer are disabled where Android supports these controls.\n\nThe app sends only fixed HTTPS requests for the currency catalog and the full USD-based ECB rate snapshot to api.frankfurter.dev. It never sends your amounts, selections, order or identifiers. Frankfurter and its infrastructure necessarily receive your IP address and connection metadata. This is not complete anonymity, and Rate Parade does not control Android’s own telemetry.\n\nNo accounts, advertising, analytics, tracking, remote crash reporting, push notifications, Google Play Services or remote assets.\n\nData: European Central Bank, via Frankfurter (frankfurter.dev). ECB data is freely available at ecb.europa.eu. Rate Parade calculates cross-currency amounts and rounds them for display; these calculations are not official ECB quotes. Reference rates may be delayed or revised and are provided without warranty.\n\nTerms: frankfurter.dev/license/ and ecb.europa.eu/services/using-our-site/disclaimer/html/index.en.html</string>
+    <string name="attribution">Blended reference rates via Frankfurter. Conversions calculated by Rate Parade.</string>
+    <string name="privacy_notice">Rate Parade stores your amounts, selected currencies and order only in app-private storage. Cloud backup and device transfer are disabled where Android supports these controls.\n\nThe app sends only fixed HTTPS requests for the currency catalog and the full USD-based rate snapshot to api.frankfurter.dev. It never sends your amounts, selections, order or identifiers. Frankfurter and its infrastructure necessarily receive your IP address and connection metadata. This is not complete anonymity, and Rate Parade does not control Android’s own telemetry.\n\nNo accounts, advertising, analytics, tracking, remote crash reporting, push notifications, Google Play Services or remote assets.\n\nData: central banks and official sources via Frankfurter (frankfurter.dev). Frankfurter blends provider rates; Rate Parade calculates cross-currency amounts and rounds them for display. These are not official quotes from any institution. Underlying data is publicly available from the providers; their individual terms apply. Reference rates may be delayed or revised and are provided without warranty.\n\nProvider attribution: frankfurter.dev/providers/ · Provider terms: frankfurter.dev/license/</string>
 </resources>

@@ -30,7 +30,7 @@ class Frankfurter : RateGateway {
         result.sortedBy { it.code }
     }
 
-    override fun rates(): Map<String, Rate> = request("rates?base=USD&providers=ecb") { reader ->
+    override fun rates(): Map<String, Rate> = request("rates?base=USD") { reader ->
         val result = linkedMapOf<String, Rate>()
         reader.beginArray()
         while (reader.hasNext()) {

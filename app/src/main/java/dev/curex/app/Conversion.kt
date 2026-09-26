@@ -9,7 +9,7 @@ import java.util.Locale
 
 data class CurrencyInfo(val code: String, val name: String)
 data class Rate(val value: BigDecimal, val date: LocalDate)
-data class Snapshot(val rates: Map<String, Rate>, val fetchedAt: Long) {
+data class Snapshot(val rates: Map<String, Rate>, val fetchedAt: Long, val coverageVersion: Int = 2) {
     init {
         require(rates.size >= 2 && rates["USD"]?.value?.compareTo(BigDecimal.ONE) == 0)
         require(rates.all { (code, rate) ->

@@ -26,13 +26,13 @@ class LocalStore(private val directory: File) {
         writeUTF(state.source.orEmpty()); writeUTF(state.input); writeChar(state.decimalSeparator.code)
     }
 
-    fun readSnapshot(): Snapshot? = read("rates") {
+    fun readSnapshot(): Snapshot? = read("rates", version = 2) { version ->
         val time = readLong()
         val rates = List(count()) { readUTF() to Rate(readUTF().toBigDecimal(), LocalDate.parse(readUTF())) }.toMap()
-        Snapshot(rates, time)
+        Snapshot(rates, time, coverageVersion = version)
     }
 
-    fun writeSnapshot(snapshot: Snapshot) = write("rates") {
+    fun writeSnapshot(snapshot: Snapshot) = write("rates", version = snapshot.coverageVersion) {
         writeLong(snapshot.fetchedAt); writeInt(snapshot.rates.size)
         snapshot.rates.forEach { (code, rate) ->
             writeUTF(code); writeUTF(rate.value.toPlainString()); writeUTF(rate.date.toString())
@@ -50,24 +50,25 @@ class LocalStore(private val directory: File) {
     }
 
     private fun DataInputStream.count() = readInt().also { require(it in 0..1000) }
-    private fun <T> read(name: String, body: DataInputStream.() -> T): T? {
+    private fun <T> read(name: String, version: Int = 1, body: DataInputStream.(Int) -> T): T? {
         val file = File(directory, name)
         if (!file.exists()) return null
         return try {
             require(file.length() <= 1_000_000)
             DataInputStream(file.inputStream().buffered()).use { stream ->
-                require(stream.readInt() == 1)
-                stream.body().also { require(stream.read() == -1) }
+                val storedVersion = stream.readInt()
+                require(storedVersion in 1..version)
+                stream.body(storedVersion).also { require(stream.read() == -1) }
             }
         } catch (_: Exception) { null }
     }
 
-    private fun write(name: String, body: DataOutputStream.() -> Unit) {
+    private fun write(name: String, version: Int = 1, body: DataOutputStream.() -> Unit) {
         val pending = File(directory, "$name.pending")
         try {
             FileOutputStream(pending).use { file ->
                 val output = DataOutputStream(file)
-                output.writeInt(1); output.body(); output.flush(); file.fd.sync()
+                output.writeInt(version); output.body(); output.flush(); file.fd.sync()
             }
             Files.move(pending.toPath(), File(directory, name).toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
         } finally { pending.delete() }

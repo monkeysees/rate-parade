@@ -71,6 +71,31 @@ class RateRepositoryTest {
         assertEquals(1, server.rateCalls)
     }
 
+    @Test fun freshLegacyCacheRefreshesOnUpgradeAndRetainsRatesWhenOffline() {
+        val directory = folder.newFolder()
+        java.io.DataOutputStream(java.io.File(directory, "rates").outputStream()).use { out ->
+            out.writeInt(1)
+            out.writeLong(100)
+            out.writeInt(rates.size)
+            rates.forEach { (code, rate) ->
+                out.writeUTF(code); out.writeUTF(rate.value.toPlainString()); out.writeUTF(rate.date.toString())
+            }
+        }
+        val expanded = rates + ("AMD" to Rate(BigDecimal("383.5"), date))
+        val server = Server(expanded).apply { failure = true }
+        val repository = RateRepository(LocalStore(directory), server, direct) { 101 }
+        val offline = repository.refresh().get()
+        assertTrue(offline.error)
+        assertEquals(rates, offline.snapshot!!.rates)
+        assertEquals(100L, offline.snapshot.fetchedAt)
+        server.failure = false
+        val upgraded = repository.refresh().get()
+        assertEquals(expanded, upgraded.snapshot!!.rates)
+        assertEquals(expanded, LocalStore(directory).readSnapshot()!!.rates)
+        repository.refresh().get()
+        assertEquals(2, server.rateCalls)
+    }
+
     private class Server(var response: Map<String, Rate>) : RateGateway {
         var rateCalls = 0
         var catalogCalls = 0
