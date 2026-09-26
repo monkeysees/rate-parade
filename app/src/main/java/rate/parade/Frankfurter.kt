@@ -1,4 +1,4 @@
-package dev.curex.app
+package rate.parade
 
 import android.util.JsonReader
 import java.io.IOException

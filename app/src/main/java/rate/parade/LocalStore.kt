@@ -1,4 +1,4 @@
-package dev.curex.app
+package rate.parade
 
 import java.io.DataInputStream
 import java.io.DataOutputStream

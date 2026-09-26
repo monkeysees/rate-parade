@@ -14,6 +14,8 @@ Rate Parade is a native Android currency converter for comparing several currenc
 
 Install JDK 17 and the Android SDK with platform 36 and build tools 35.0.0. Set `ANDROID_HOME` or add `sdk.dir=/path/to/android/sdk` to a local `local.properties` file. Android Studio can open the project directly.
 
+The Android application ID is `rate.parade`. Android treats it as a separate app from earlier builds, so existing local data does not carry over automatically.
+
 Run the unit tests and Android lint checks with:
 
 ```sh

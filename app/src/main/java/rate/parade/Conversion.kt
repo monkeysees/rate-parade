@@ -1,4 +1,4 @@
-package dev.curex.app
+package rate.parade
 
 import java.math.BigDecimal
 import java.math.MathContext

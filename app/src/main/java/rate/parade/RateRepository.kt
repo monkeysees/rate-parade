@@ -1,4 +1,4 @@
-package dev.curex.app
+package rate.parade
 
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executor

@@ -1,4 +1,4 @@
-package dev.curex.app
+package rate.parade
 
 import android.app.Application
 import android.app.job.JobInfo

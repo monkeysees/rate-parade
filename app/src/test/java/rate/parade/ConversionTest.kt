@@ -1,4 +1,4 @@
-package dev.curex.app
+package rate.parade
 
 import org.junit.Assert.*
 import org.junit.Test

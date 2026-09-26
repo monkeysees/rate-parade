@@ -3,10 +3,10 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 android {
-    namespace = "dev.curex.app"
+    namespace = "rate.parade"
     compileSdk = 36
     defaultConfig {
-        applicationId = "dev.curex.app"
+        applicationId = "rate.parade"
         minSdk = 26
         targetSdk = 36
         versionCode = 3

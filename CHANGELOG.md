@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Rename the Android package and application ID to `rate.parade`.
+
 ## 0.1.2 — 2026-09-26
 
 - Select the whole currency amount when its input is tapped, so a new value can replace it immediately.
