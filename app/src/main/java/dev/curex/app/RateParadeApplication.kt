@@ -8,7 +8,7 @@ import android.app.job.JobParameters
 import android.content.ComponentName
 import java.util.concurrent.Executors
 
-class CurExApplication : Application() {
+class RateParadeApplication : Application() {
     val storageExecutor = Executors.newSingleThreadExecutor()
     private val networkExecutor = Executors.newSingleThreadExecutor()
     val store: LocalStore by lazy { LocalStore(noBackupFilesDir) }
@@ -30,7 +30,7 @@ class RefreshJob : JobService() {
     private var active: JobParameters? = null
     override fun onStartJob(params: JobParameters): Boolean {
         active = params
-        val app = application as CurExApplication
+        val app = application as RateParadeApplication
         app.storageExecutor.execute { app.repository.refresh(force = true).thenAccept {
             android.os.Handler(mainLooper).post {
                 if (active === params) {

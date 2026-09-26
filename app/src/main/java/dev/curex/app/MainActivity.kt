@@ -26,7 +26,7 @@ import java.text.DecimalFormatSymbols
 import java.util.Date
 
 class MainActivity : Activity() {
-    private val app get() = application as CurExApplication
+    private val app get() = application as RateParadeApplication
     private var state = ConversionState()
     private var data = RateData(null, null)
     private var loaded = false

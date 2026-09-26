@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Rename the app to Rate Parade.
 - Add visible drag handles for placing currencies anywhere in the list.
 - Remove the source summary and per-currency rate dates; show effective dates once in the status area.
 

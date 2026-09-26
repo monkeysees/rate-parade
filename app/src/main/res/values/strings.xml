@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">CurEx</string>
+    <string name="app_name">Rate Parade</string>
     <string name="subtitle">Currency converter</string>
     <string name="refresh">Refresh</string>
     <string name="add_currency">Add currency</string>
@@ -31,6 +31,6 @@
     <string name="offline">Offline · using saved data</string>
     <string name="refresh_failed">Refresh failed · saved rates retained</string>
     <string name="save_failed">Could not save changes. Check free storage.</string>
-    <string name="attribution">ECB reference data via Frankfurter. Conversions calculated by CurEx.</string>
-    <string name="privacy_notice">CurEx stores your amounts, selected currencies and order only in app-private storage. Cloud backup and device transfer are disabled where Android supports these controls.\n\nThe app sends only fixed HTTPS requests for the currency catalog and the full USD-based ECB rate snapshot to api.frankfurter.dev. It never sends your amounts, selections, order or identifiers. Frankfurter and its infrastructure necessarily receive your IP address and connection metadata. This is not complete anonymity, and CurEx does not control Android’s own telemetry.\n\nNo accounts, advertising, analytics, tracking, remote crash reporting, push notifications, Google Play Services or remote assets.\n\nData: European Central Bank, via Frankfurter (frankfurter.dev). ECB data is freely available at ecb.europa.eu. CurEx calculates cross-currency amounts and rounds them for display; these calculations are not official ECB quotes. Reference rates may be delayed or revised and are provided without warranty.\n\nTerms: frankfurter.dev/license/ and ecb.europa.eu/services/using-our-site/disclaimer/html/index.en.html</string>
+    <string name="attribution">ECB reference data via Frankfurter. Conversions calculated by Rate Parade.</string>
+    <string name="privacy_notice">Rate Parade stores your amounts, selected currencies and order only in app-private storage. Cloud backup and device transfer are disabled where Android supports these controls.\n\nThe app sends only fixed HTTPS requests for the currency catalog and the full USD-based ECB rate snapshot to api.frankfurter.dev. It never sends your amounts, selections, order or identifiers. Frankfurter and its infrastructure necessarily receive your IP address and connection metadata. This is not complete anonymity, and Rate Parade does not control Android’s own telemetry.\n\nNo accounts, advertising, analytics, tracking, remote crash reporting, push notifications, Google Play Services or remote assets.\n\nData: European Central Bank, via Frankfurter (frankfurter.dev). ECB data is freely available at ecb.europa.eu. Rate Parade calculates cross-currency amounts and rounds them for display; these calculations are not official ECB quotes. Reference rates may be delayed or revised and are provided without warranty.\n\nTerms: frankfurter.dev/license/ and ecb.europa.eu/services/using-our-site/disclaimer/html/index.en.html</string>
 </resources>

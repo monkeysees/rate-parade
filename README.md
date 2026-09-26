@@ -1,4 +1,4 @@
-# CurEx
+# Rate Parade
 
 A compact, native Android currency converter. Edit any row to convert locally, search currencies by code or name, and drag a row’s handle to place it above or below another currency. The row’s **Move up / Move down** menu remains available for accessibility. The system light/dark theme is respected. Android 8.0 (API 26) or newer is required.
 
@@ -30,6 +30,6 @@ This delivery also includes `artifacts/cur-ex-1.0.0-release-local.apk`: the opti
 
 ## Privacy and data
 
-See [PRIVACY.md](PRIVACY.md) and the in-app **Privacy & data** notice. There are no accounts, telemetry, advertising, tracking, remote assets or Google Play Services dependencies. Currency reference data is from the ECB via [Frankfurter](https://frankfurter.dev/); CurEx computes and rounds the displayed conversions. Rates are informational, can be delayed or revised, and are provided without warranty.
+See [PRIVACY.md](PRIVACY.md) and the in-app **Privacy & data** notice. There are no accounts, telemetry, advertising, tracking, remote assets or Google Play Services dependencies. Currency reference data is from the ECB via [Frankfurter](https://frankfurter.dev/); Rate Parade computes and rounds the displayed conversions. Rates are informational, can be delayed or revised, and are provided without warranty.
 
 Implementation notes and evidence are in [docs/verification.md](docs/verification.md). Release changes are recorded in [CHANGELOG.md](CHANGELOG.md).
