@@ -10,12 +10,9 @@
     <string name="empty">Add a currency to start converting.</string>
     <string name="no_rates">Connect to the internet and refresh to download your first rates.</string>
     <string name="no_catalog">Currency names are not available yet. Connect and refresh to download them.</string>
-    <string name="source">Source: %1$s · %2$s</string>
-    <string name="source_empty">Edit any amount to convert</string>
     <string name="invalid_input">Enter a number of at most 64 characters using your decimal separator, without grouping.</string>
     <string name="missing_rate">No cached rate</string>
     <string name="conversion_unavailable">Conversion unavailable</string>
-    <string name="rate_date">Rate: %1$s</string>
     <string name="amount_description">%1$s amount</string>
     <string name="row_actions">Actions for %1$s; long press to drag</string>
     <string name="move_up">Move up</string>

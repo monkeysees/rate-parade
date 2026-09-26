@@ -3,7 +3,6 @@ package dev.curex.app
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.ClipData
-import android.content.res.Configuration
 import android.graphics.Typeface
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
@@ -33,7 +32,6 @@ class MainActivity : Activity() {
     private var changingText = false
     private lateinit var rows: LinearLayout
     private lateinit var status: TextView
-    private lateinit var source: TextView
     private lateinit var empty: TextView
     private lateinit var refresh: Button
     private lateinit var add: Button
@@ -44,7 +42,6 @@ class MainActivity : Activity() {
     }
     private val locale get() = resources.configuration.locales[0]
     private val separator get() = DecimalFormatSymbols.getInstance(locale).decimalSeparator
-    private val accent get() = if (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES) 0xFF79D7C4.toInt() else 0xFF006C60.toInt()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -125,13 +122,6 @@ class MainActivity : Activity() {
         toolbar.addView(add, LinearLayout.LayoutParams(0, dp(52), 1f))
         toolbar.addView(refresh, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(52)))
         root.addView(toolbar)
-        source = label(getString(R.string.source_empty), 14f).apply {
-            setTextColor(accent)
-            setPadding(0, dp(8), 0, dp(8))
-            maxLines = 2
-            ellipsize = android.text.TextUtils.TruncateAt.END
-        }
-        root.addView(source)
         rows = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         empty = label(getString(R.string.empty), 18f).apply { setPadding(dp(8), dp(24), dp(8), dp(24)) }
         val scrollContent = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; addView(empty); addView(rows) }
@@ -243,8 +233,6 @@ class MainActivity : Activity() {
             })
         }
         container.addView(input, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-        val date = label("", 12f)
-        container.addView(date)
         container.setOnDragListener { _, event ->
             val dragged = event.localState as? String
             when (event.action) {
@@ -254,7 +242,7 @@ class MainActivity : Activity() {
                 else -> true
             }
         }
-        return CurrencyRow(container, name, input, date)
+        return CurrencyRow(container, name, input)
     }
 
     private fun updateAmounts() {
@@ -271,11 +259,8 @@ class MainActivity : Activity() {
                 }
                 row.input.error = if (code == state.source && state.input.isNotEmpty() && parseInput(state.input, state.decimalSeparator) == null)
                     getString(R.string.invalid_input) else null
-                val rate = data.snapshot?.rates?.get(code)
-                row.date.text = if (rate == null) getString(R.string.missing_rate) else getString(R.string.rate_date, rate.date.toString())
             }
         } finally { changingText = false }
-        source.text = state.source?.let { getString(R.string.source, it, state.input.ifEmpty { "—" }) } ?: getString(R.string.source_empty)
     }
 
     private fun showActions(anchor: View, code: String) {
@@ -366,5 +351,5 @@ class MainActivity : Activity() {
 
     private fun label(value: String, size: Float) = TextView(this).apply { text = value; textSize = size }
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
-    private data class CurrencyRow(val container: LinearLayout, val name: TextView, val input: EditText, val date: TextView)
+    private data class CurrencyRow(val container: LinearLayout, val name: TextView, val input: EditText)
 }
